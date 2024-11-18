@@ -1,38 +1,41 @@
-import { useState, useEffect } from 'react'
-import { getPosts, getPost, createPost, updatePost, deletePost } from './api'
 import './App.css'
+import { HashRouter as Router, Routes, Route } from "react-router-dom"
+import { About } from './pages/About'
+import { Contact } from './pages/Contact'
+import { CreateBlog } from './pages/CreateBlog'
+import { Home } from './pages/Home'
+import { Landing } from './pages/Landing'
+import { Profile } from './pages/Profile'
+import { ReadBlog } from './pages/ReadBlog'
+import { Navbar } from './components/Navbar'
+import { Layout } from './components/Layout'
 
 function App() {
 
-  const [posts, setPosts] = useState()
-  function makePost() {
-    let postObject = {
-      title: "ZZZZ",
-      description: "XXXX",
-      content: "YYYY",
-      author: "AAAA",
-      dateCreated: new Date()
-    }
-    createPost(postObject)
-  }
+  //Pages
+  //Landing Page
+  //Home Page
+  //ReadBlog
+  //CreateBlog
+  //Profile Page
+  //About
+  //Contact
 
-
-  // useEffect(() => {
-  //   async function loadAllPosts() {
-  //     let data = await getPosts()
-  //     if (data) {
-  //       setPosts(data)
-  //     }
-  //   }
-  //   loadAllPosts()
-  // }, [])
 
   return (
-    <>
-      <button onClick={makePost}>
-        CreatePost
-      </button>
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route element={<Layout />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/createblog" element={<CreateBlog />} />
+          <Route path="/readblog/:id" element={<ReadBlog />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+        </Route>
+      </Routes>
+    </Router>
   )
 }
 
