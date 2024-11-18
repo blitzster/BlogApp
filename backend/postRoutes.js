@@ -1,76 +1,120 @@
-const express = require("express")
-const database = require("./connect")
-const ObjectId = require("mongodb").ObjectId
+const express = require("express");
+const database = require("./connect");
+const ObjectId = require("mongodb").ObjectId;
 
-let postRoutes = express.Router()
+let postRoutes = express.Router();
+
+// Helper to validate ObjectId
+const isValidObjectId = (id) => {
+    return ObjectId.isValid(id) && String(new ObjectId(id)) === id;
+};
 
 // #1 Retrieve All
-postRoutes.route("/posts").get(async (request, response) => {
-    let db = database.getDb()
-    let data = await db.collection("posts").find({}).toArray()
+postRoutes.route("/posts").get(async (req, res) => {
+    try {
+        let db = database.getDb();
+        let data = await db.collection("posts").find({}).toArray();
 
-    if (data.length > 0) {
-        response.json(data)
+        if (data.length > 0) {
+            res.json(data);
+        } else {
+            res.status(404).json({ error: "No posts found" });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: "An error occurred while retrieving posts" });
     }
-    else {
-        throw new Error("Data was not found");
-    }
-})
-
+});
 
 // #2 Retrieve One
-postRoutes.route("/posts/:id").get(async (request, response) => {
-    let db = database.getDb()
-    let data = await db.collection("posts").findOne({ _id: new ObjectId(request.params.id) })
+postRoutes.route("/posts/:id").get(async (req, res) => {
+    try {
+        let db = database.getDb();
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ error: "Invalid ID format" });
+        }
 
-    if (Object.keys(data).length > 0) {
-        response.json(data)
+        let data = await db.collection("posts").findOne({ _id: new ObjectId(req.params.id) });
+        if (data) {
+            res.json(data);
+        } else {
+            res.status(404).json({ error: "Post not found" });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: "An error occurred while retrieving the post" });
     }
-    else {
-        throw new Error("Data was not found");
-    }
-})
-
+});
 
 // #3 Create One
-postRoutes.route("/posts").post(async (request, response) => {
-    let db = database.getDb()
-    let mongoObject = {
-        title: request.body.title,
-        description: request.body.description,
-        content: request.body.content,
-        author: request.body.author,
-        dateCreated: request.body.dateCreated
-    }
-    let data = await db.collection("posts").insertOne(mongoObject)
+postRoutes.route("/posts").post(async (req, res) => {
+    try {
+        let db = database.getDb();
+        let mongoObject = {
+            title: req.body.title,
+            description: req.body.description,
+            content: req.body.content,
+            author: req.body.author,
+            dateCreated: req.body.dateCreated,
+        };
+        let result = await db.collection("posts").insertOne(mongoObject);
 
-    response.json(data)
-})
+        res.status(201).json({ message: "Post created", post: result.ops[0] });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: "An error occurred while creating the post" });
+    }
+});
 
 // #4 Update One
-postRoutes.route("/posts/:id").put(async (request, response) => {
-    let db = database.getDb()
-    let mongoObject = {
-        $set: {
-            title: request.body.title,
-            description: request.body.description,
-            content: request.body.content,
-            author: request.body.author,
-            dateCreated: request.body.dateCreated
+postRoutes.route("/posts/:id").put(async (req, res) => {
+    try {
+        let db = database.getDb();
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ error: "Invalid ID format" });
         }
-    }
-    let data = await db.collection("posts").updateOne({ _id: new ObjectId(request.params.id) }, mongoObject)
-    response.json(data)
-})
 
+        let mongoObject = {
+            $set: {
+                title: req.body.title,
+                description: req.body.description,
+                content: req.body.content,
+                author: req.body.author,
+                dateCreated: req.body.dateCreated,
+            },
+        };
+        let result = await db.collection("posts").updateOne({ _id: new ObjectId(req.params.id) }, mongoObject);
+
+        if (result.matchedCount === 0) {
+            res.status(404).json({ error: "Post not found" });
+        } else {
+            res.json({ message: "Post updated", updated: result.modifiedCount });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: "An error occurred while updating the post" });
+    }
+});
 
 // #5 Delete One
-postRoutes.route("/posts/:id").delete(async (request, response) => {
-    let db = database.getDb()
-    let data = await db.collection("posts").deleteOne({ _id: new ObjectId(request.params.id) })
+postRoutes.route("/posts/:id").delete(async (req, res) => {
+    try {
+        let db = database.getDb();
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ error: "Invalid ID format" });
+        }
 
-    response.json(data)
-})
+        let result = await db.collection("posts").deleteOne({ _id: new ObjectId(req.params.id) });
 
+        if (result.deletedCount === 0) {
+            res.status(404).json({ error: "Post not found" });
+        } else {
+            res.json({ message: "Post deleted", deleted: result.deletedCount });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: "An error occurred while deleting the post" });
+    }
+});
 
-module.exports = postRoutes
+module.exports = postRoutes;
