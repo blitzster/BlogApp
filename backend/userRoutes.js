@@ -1,8 +1,10 @@
 const express = require("express");
 const database = require("./connect");
 const ObjectId = require("mongodb").ObjectId;
+const bcrypt = require("bcrypt")
 
 let userRoutes = express.Router();
+const SALT_ROUNDS = 6
 
 // Helper to validate ObjectId
 const isValidObjectId = (id) => {
@@ -50,16 +52,24 @@ userRoutes.route("/users/:id").get(async (req, res) => {
 userRoutes.route("/users").post(async (req, res) => {
     try {
         let db = database.getDb();
-        let mongoObject = {
-            name: req.body.name,
-            email: req.body.email,
-            password: req.body.password,
-            joinDate: new Date(),
-            posts: []
-        };
-        let result = await db.collection("users").insertOne(mongoObject);
 
-        res.status(201).json({ message: "Post created", post: result.ops[0] });
+        const takenEmail = await db.collection("users").findOne({ email: req.body.email });
+        if (takenEmail) {
+            res.json({ message: "The email is taken" });
+        } else {
+            const hash = await bcrypt.hash(req.body.password, SALT_ROUNDS);
+            let mongoObject = {
+                name: req.body.name,
+                email: req.body.email,
+                password: hash,
+                joinDate: new Date(),
+                posts: []
+            };
+            let result = await db.collection("users").insertOne(mongoObject);
+
+            res.status(201).json({ message: "User created", user: result.ops[0] });
+        }
+
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "An error occurred while creating the post" });
