@@ -60,3 +60,13 @@ export async function updateUser(id, user) {
     const response = await axios.put(`${URL}/users/${id}`, user)
     return response
 }
+
+export async function verifyUser(user) {
+    const response = await axios.post(`${URL}/users/login`, user)
+
+    if (response.data.success) {
+        return response.data.user
+    } else {
+        return
+    }
+}
