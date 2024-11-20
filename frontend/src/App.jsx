@@ -9,17 +9,17 @@ import { Profile } from './pages/Profile'
 import { ReadBlog } from './pages/ReadBlog'
 import { Navbar } from './components/Navbar'
 import { Layout } from './components/Layout'
+import { useEffect } from 'react'
+import axios from 'axios'
 
 function App() {
 
-  //Pages
-  //Landing Page
-  //Home Page
-  //ReadBlog
-  //CreateBlog
-  //Profile Page
-  //About
-  //Contact
+  useEffect(() => {
+    let token = sessionStorage.getItem("User")
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+    }
+  }, [])
 
 
   return (

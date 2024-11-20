@@ -1,6 +1,8 @@
 const express = require("express");
 const database = require("./connect");
 const ObjectId = require("mongodb").ObjectId;
+const jwt = require("jsonwebtoken")
+require("dotenv").config({ path: "./config.env" });
 
 let postRoutes = express.Router();
 
@@ -10,7 +12,7 @@ const isValidObjectId = (id) => {
 };
 
 // #1 Retrieve All
-postRoutes.route("/posts").get(async (req, res) => {
+postRoutes.route("/posts").get(verifyToken, async (req, res) => {
     try {
         let db = database.getDb();
         let data = await db.collection("posts").find({}).toArray();
@@ -27,7 +29,7 @@ postRoutes.route("/posts").get(async (req, res) => {
 });
 
 // #2 Retrieve One
-postRoutes.route("/posts/:id").get(async (req, res) => {
+postRoutes.route("/posts/:id").get(verifyToken, async (req, res) => {
     try {
         let db = database.getDb();
         if (!isValidObjectId(req.params.id)) {
@@ -47,14 +49,14 @@ postRoutes.route("/posts/:id").get(async (req, res) => {
 });
 
 // #3 Create One
-postRoutes.route("/posts").post(async (req, res) => {
+postRoutes.route("/posts").post(verifyToken, async (req, res) => {
     try {
         let db = database.getDb();
         let mongoObject = {
             title: req.body.title,
             description: req.body.description,
             content: req.body.content,
-            author: req.body.author,
+            author: req.body.user._id,
             dateCreated: req.body.dateCreated,
         };
         let result = await db.collection("posts").insertOne(mongoObject);
@@ -67,7 +69,7 @@ postRoutes.route("/posts").post(async (req, res) => {
 });
 
 // #4 Update One
-postRoutes.route("/posts/:id").put(async (req, res) => {
+postRoutes.route("/posts/:id").put(verifyToken, async (req, res) => {
     try {
         let db = database.getDb();
         if (!isValidObjectId(req.params.id)) {
@@ -97,7 +99,7 @@ postRoutes.route("/posts/:id").put(async (req, res) => {
 });
 
 // #5 Delete One
-postRoutes.route("/posts/:id").delete(async (req, res) => {
+postRoutes.route("/posts/:id").delete(verifyToken, async (req, res) => {
     try {
         let db = database.getDb();
         if (!isValidObjectId(req.params.id)) {
@@ -116,5 +118,23 @@ postRoutes.route("/posts/:id").delete(async (req, res) => {
         res.status(500).json({ error: "An error occurred while deleting the post" });
     }
 });
+
+function verifyToken(request, response, next) {
+    const authHeaders = request.headers["authorization"]
+    const token = authHeaders && authHeaders.split(' ')[1]
+    if (!token) {
+        return response.status(401).json({ message: "Authentication token is missing" })
+
+    }
+
+    jwt.verify(token, process.env.SECRETKEY, (error, user) => {
+        if (error) {
+            return response.status(403).json({ message: "Invalid Token" })
+        }
+
+        request.body.user = user
+        next()
+    })
+}
 
 module.exports = postRoutes;
