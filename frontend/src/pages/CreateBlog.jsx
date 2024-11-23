@@ -1,25 +1,43 @@
-import { useState } from "react"
-import { createPost } from "../api"
-
+import { useState } from "react";
+import { createPost } from "../api";
+import axios from "axios";
 
 export function CreateBlog() {
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [content, setContent] = useState("");
+    const [image, setImage] = useState(null);
+    const [imagePath, setImagePath] = useState("");
 
-    const [title, setTitle] = useState("")
-    const [description, setDescription] = useState("")
-    const [content, setContent] = useState("")
+    async function handleImageUpload(e) {
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append("image", file);
 
-    async function handleSubmit() {
-        let submitObject = {
-            title: title,
-            description: description,
-            content: content,
-            author: null,
-            dateCreated: new Date()
+        try {
+            const response = await axios.post("/api/upload", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            setImagePath(response.data.filePath);
+        } catch (err) {
+            console.error("Error uploading image", err);
         }
-
-        await createPost(submitObject)
     }
 
+    async function handleSubmit(e) {
+        e.preventDefault();
+        let submitObject = {
+            title,
+            description,
+            content,
+            image: imagePath, // Add image path to the payload
+            author: null,
+            dateCreated: new Date(),
+        };
+        await createPost(submitObject);
+    }
 
     return (
         <form onSubmit={handleSubmit}>
@@ -29,7 +47,9 @@ export function CreateBlog() {
             <input onChange={(e) => setDescription(e.target.value)} required maxLength={200} name="description" />
             <label>Blog Content</label>
             <textarea onChange={(e) => setContent(e.target.value)} required maxLength={5000} name="content" />
+            <label>Upload Image</label>
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
             <button type="submit">Submit</button>
         </form>
-    )
+    );
 }
